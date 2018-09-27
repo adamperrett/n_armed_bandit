@@ -56,6 +56,7 @@ from bandit_machine_vertex import BanditMachineVertex
 
 import numpy
 
+NUMPY_DATA_ELEMENT_TYPE = numpy.double
 
 # ----------------------------------------------------------------------------
 # Bandit
@@ -100,31 +101,26 @@ class Bandit(ApplicationVertex, AbstractGeneratesDataSpecification,
     def clear_connection_cache(self):
         pass
 
+    ##TODO adjust this
     BANDIT_REGION_BYTES = 4
-    WIDTH_PIXELS = 160
-    HEIGHT_PIXELS = 128
-    COLOUR_BITS = 2
     MAX_SIM_DURATION = 1000 * 60 * 60 * 24 * 7  # 1 week
 
     # **HACK** for Projection to connect a synapse type is required
     synapse_type = BanditSynapseType()
 
-    def __init__(self, n_neurons, width=WIDTH_PIXELS, height=HEIGHT_PIXELS,
-                 colour_bits=COLOUR_BITS, constraints=None,
-                 label="Bandit", incoming_spike_buffer_size=None,
+    def __init__(self, arms, reward_delay, constraints=None,
+                 label="Breakout", incoming_spike_buffer_size=None,
                  simulation_duration_ms=MAX_SIM_DURATION):
         # **NOTE** n_neurons currently ignored - width and height will be
         # specified as additional parameters, forcing their product to be
         # duplicated in n_neurons seems pointless
 
-        self._width = width
-        self._height = height
-        self._colour_bits = colour_bits
-        self._width_bits = numpy.uint32(numpy.ceil(numpy.log2(width)))
-        self._height_bits = numpy.uint32(numpy.ceil(numpy.log2(height)))
+        self._arms = arms
 
-        self._n_neurons = (1 << (self._width_bits + self._height_bits +
-                                 self._colour_bits + 1))
+        self._no_arms = len(arms)
+        self._n_neurons = self._no_arms
+
+        self._reward_delay = reward_delay
 
         # used to define size of recording region
         self._recording_size = int((simulation_duration_ms / 10000.) * 4)
@@ -242,6 +238,18 @@ class Bandit(ApplicationVertex, AbstractGeneratesDataSpecification,
         ip_tags = tags.get_ip_tags_for_vertex(self) or []
         spec.write_array(recording_utilities.get_recording_header_array(
             [self._recording_size], ip_tags=ip_tags))
+
+        # Write probabilites for arms
+        spec.comment("\nWriting arm probability region region:\n")
+        spec.switch_write_focus(
+            BanditMachineVertex._BANDIT_REGIONS.ARMS.value)
+        ip_tags = tags.get_ip_tags_for_vertex(self) or []
+        spec.write_value(self._reward_delay, data_type=NUMPY_DATA_ELEMENT_TYPE)
+        spec.write_value(self._no_arms, data_type=NUMPY_DATA_ELEMENT_TYPE)
+        # Write the data - Arrays must be 32-bit values, so convert
+        data = numpy.array(self._arms, dtype=NUMPY_DATA_ELEMENT_TYPE)
+        spec.write_array(data.view(numpy.uint32))
+
 
         # End-of-Spec:
         spec.end_specification()

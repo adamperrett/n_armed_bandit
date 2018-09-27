@@ -20,7 +20,8 @@ class BanditMachineVertex(MachineVertex):
         value="_BANDIT_REGIONS",
         names=[('SYSTEM', 0),
                ('BANDIT', 1),
-               ('RECORDING', 2)])
+               ('RECORDING', 2),
+               ('ARMS', 3)])
 
     def __init__(self, resources_required, constraints=None, label=None):
         # Superclasses
