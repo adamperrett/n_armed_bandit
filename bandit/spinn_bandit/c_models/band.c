@@ -26,7 +26,7 @@
 //----------------------------------------------------------------------------
 
 // Frame delay (ms)
-//#define REWARD_DELAY 200 //14//20
+//#define reward_delay 200 //14//20
 
 //----------------------------------------------------------------------------
 // Enumerations
@@ -61,14 +61,33 @@ typedef enum
 //----------------------------------------------------------------------------
 // Globals
 //----------------------------------------------------------------------------
+
+static uint32_t _time;
+
 //! Should simulation run for ever? 0 if not
 static uint32_t infinite_run;
+
 const int max_number_of_arms = 8;
-float *arm_probabilities;
-double number_of_arms;
-int arm_choices[max_number_of_arms] = {0};
+
+uint32_t *arm_probabilities;
+
+int number_of_arms;
+
+int arm_choices[8] = {0};
+
 int32_t current_score = 0;
-int reward_delay
+
+uint32_t reward_delay;
+
+//! How many ticks until next frame
+static uint32_t tick_in_frame = 0;
+
+//! The upper bits of the key value that model should transmit with
+static uint32_t key;
+
+//! the number of timer ticks that this model should run for before exiting.
+uint32_t simulation_ticks = 0;
+uint32_t score_change_count=0;
 
 //----------------------------------------------------------------------------
 // Inline functions
@@ -85,6 +104,10 @@ static inline void add_no_reward()
   spin1_send_mc_packet(key | (SPECIAL_EVENT_NO_REWARD), 0, NO_PAYLOAD);
   log_debug("No reward");
   current_score--;
+}
+
+void resume_callback() {
+    recording_reset();
 }
 
 //void add_event(int i, int j, colour_t col, bool bricked)
@@ -143,73 +166,18 @@ static bool initialize(uint32_t *timer_period)
     }
 
     address_t arms_region = data_specification_get_region(REGION_ARMS, address);
-    reward_delay = arms_region[0]
+    reward_delay = arms_region[0];
     number_of_arms = arms_region[1];
-    arm_probabilities = arms_region[2];
+    arm_probabilities = (uint32_t *)arms_region[2];
     //TODO check this prints right, ybug read the address
-    log_info((uint32_t)arms_region[0]);
-    log_info((uint32_t)arms_region[1]);
+    log_info("%d", (uint32_t *)arms_region[0]);
+    log_info("%d", (uint32_t *)arms_region[1]);
+    log_info("%d", (uint32_t *)arms_region[2]);
 
 
     log_info("Initialise: completed successfully");
 
     return true;
-}
-
-void timer_callback(uint unused, uint dummy)
-{
-    use(unused);
-    use(dummy);
-
-    _time++;
-    score_change_count++;
-
-    if (!infinite_run && _time >= simulation_ticks)
-    {
-        //spin1_pause();
-        recording_finalise();
-        // go into pause and resume state to avoid another tick
-        simulation_handle_pause_resume(resume_callback);
-        //    spin1_callback_off(MC_PACKET_RECEIVED);
-
-        log_info("move count Left %u", move_count_l);
-        log_info("move count Right %u", move_count_r);
-        log_info("infinite_run %d; time %d",infinite_run, _time);
-        log_info("simulation_ticks %d",simulation_ticks);
-        //    log_info("key count Left %u", left_key_count);
-        //    log_info("key count Right %u", right_key_count);
-
-        log_info("Exiting on timer.");
-        simulation_handle_pause_resume(NULL);
-
-        _time -= 1;
-        return;
-    }
-    // Otherwise
-    else
-    {
-        // Increment ticks in frame counter and if this has reached frame delay
-        tick_in_frame++;
-        if(tick_in_frame == REWARD_DELAY)
-        {
-            if was_there_a_reward{
-                add_reward();
-            }
-            else{
-                add_no_reward();
-            }
-            // Reset ticks in frame and update frame
-            tick_in_frame = 0;
-//            update_frame();
-            // Update recorded score every 10s
-            if(score_change_count>=10000){
-                recording_record(0, &current_score, 4);
-                score_change_count=0;
-            }
-        }
-    }
-//    log_info("time %u", ticks);
-//    log_info("time %u", _time);
 }
 
 bool was_there_a_reward(){
@@ -219,24 +187,24 @@ bool was_there_a_reward(){
         choice = 0;
         highest_value = arm_choices[0];
     }
-    log_info("0 was spiked %d times", arm_choices[0])
+    log_info("0 was spiked %d times", arm_choices[0]);
     arm_choices[0] = 0;
     for(i=1; i<number_of_arms; i=i+1){
         if (arm_choices[i] > highest_value){
             choice = i;
             highest_value = arm_choices[i];
         }
-        log_info("%d was spiked %d times", i, arm_choices[i])
+        log_info("%d was spiked %d times", i, arm_choices[i]);
         arm_choices[i] = 0;
     }
     double probability_roll = (double)rand() / (double)RAND_MAX
-    log_info("roll was %d and prob was %d", probability_roll, arm_probabilities[choice])
+    log_info("roll was %d and prob was %d", probability_roll, arm_probabilities[choice]);
     if(probability_roll < arm_probabilities[choice]){
-        log_info("reward given")
+        log_info("reward given");
         return true;
     }
     else{
-        log_info("no cigar")
+        log_info("no cigar");
         return false;
     }
 }
@@ -271,6 +239,60 @@ void mc_packet_received_callback(uint key, uint payload)
     else {
         log_info("it broke arm selection %d", key);
     }
+}
+
+void timer_callback(uint unused, uint dummy)
+{
+    use(unused);
+    use(dummy);
+
+    _time++;
+    score_change_count++;
+
+    if (!infinite_run && _time >= simulation_ticks)
+    {
+        //spin1_pause();
+        recording_finalise();
+        // go into pause and resume state to avoid another tick
+        simulation_handle_pause_resume(resume_callback);
+        //    spin1_callback_off(MC_PACKET_RECEIVED);
+
+        log_info("infinite_run %d; time %d",infinite_run, _time);
+        log_info("simulation_ticks %d",simulation_ticks);
+        //    log_info("key count Left %u", left_key_count);
+        //    log_info("key count Right %u", right_key_count);
+
+        log_info("Exiting on timer.");
+        simulation_handle_pause_resume(NULL);
+
+        _time -= 1;
+        return;
+    }
+    // Otherwise
+    else
+    {
+        // Increment ticks in frame counter and if this has reached frame delay
+        tick_in_frame++;
+        if(tick_in_frame == reward_delay)
+        {
+            if (was_there_a_reward){
+                add_reward();
+            }
+            else{
+                add_no_reward();
+            }
+            // Reset ticks in frame and update frame
+            tick_in_frame = 0;
+//            update_frame();
+            // Update recorded score every 10s
+            if(score_change_count>=10000){
+                recording_record(0, &current_score, 4);
+                score_change_count=0;
+            }
+        }
+    }
+//    log_info("time %u", ticks);
+//    log_info("time %u", _time);
 }
 //-------------------------------------------------------------------------------
 
