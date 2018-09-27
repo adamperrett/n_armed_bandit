@@ -219,19 +219,24 @@ bool was_there_a_reward(){
         choice = 0;
         highest_value = arm_choices[0];
     }
+    log_info("0 was spiked %d times", arm_choices[0])
     arm_choices[0] = 0;
     for(i=1; i<number_of_arms; i=i+1){
         if (arm_choices[i] > highest_value){
             choice = i;
             highest_value = arm_choices[i];
         }
+        log_info("%d was spiked %d times", i, arm_choices[i])
         arm_choices[i] = 0;
     }
     double probability_roll = (double)rand() / (double)RAND_MAX
+    log_info("roll was %d and prob was %d", probability_roll, arm_probabilities[choice])
     if(probability_roll < arm_probabilities[choice]){
+        log_info("reward given")
         return true;
     }
     else{
+        log_info("no cigar")
         return false;
     }
 }
