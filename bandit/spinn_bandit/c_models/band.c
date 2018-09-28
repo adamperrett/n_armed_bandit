@@ -8,6 +8,8 @@
 // Standard includes
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // Spin 1 API includes
 #include <spin1_api.h>
@@ -189,7 +191,7 @@ bool was_there_a_reward(){
     }
     log_info("0 was spiked %d times", arm_choices[0]);
     arm_choices[0] = 0;
-    for(i=1; i<number_of_arms; i=i+1){
+    for(int i=1; i<number_of_arms; i=i+1){
         if (arm_choices[i] > highest_value){
             choice = i;
             highest_value = arm_choices[i];
@@ -211,29 +213,33 @@ bool was_there_a_reward(){
 
 void mc_packet_received_callback(uint key, uint payload)
 {
+
+    //comapre first with 0x7
+    compare = key & 0x7
+    log_info("compare = %x", compare)
     use(payload);
-    if(key & KEY_ARM_0){
+    if(compare == KEY_ARM_0){
         arm_choices[0]++;
     }
-    else if(key & KEY_ARM_1){
+    else if(compare == KEY_ARM_1){
         arm_choices[1]++;
     }
-    else if(key & KEY_ARM_2){
+    else if(compare == KEY_ARM_2){
         arm_choices[2]++;
     }
-    else if(key & KEY_ARM_3){
+    else if(compare == KEY_ARM_3){
         arm_choices[3]++;
     }
-    else if(key & KEY_ARM_4){
+    else if(compare == KEY_ARM_4){
         arm_choices[4]++;
     }
-    else if(key & KEY_ARM_5){
+    else if(compare == KEY_ARM_5){
         arm_choices[5]++;
     }
-    else if(key & KEY_ARM_6){
+    else if(compare == KEY_ARM_6){
         arm_choices[6]++;
     }
-    else if(key & KEY_ARM_7){
+    else if(compare == KEY_ARM_7){
         arm_choices[7]++;
     }
     else {
@@ -316,15 +322,12 @@ void c_main(void)
   }
 
   init_frame();
-  keystate = 0; // IDLE
   tick_in_frame = 0;
-  pkt_count = 0;
 
   // Set timer tick (in microseconds)
   log_info("setting timer tick callback for %d microseconds",
               timer_period);
   spin1_set_timer_tick(timer_period);
-  log_info("bricks %x", &bricks);
 
   log_info("simulation_ticks %d",simulation_ticks);
 
