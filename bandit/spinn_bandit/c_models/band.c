@@ -58,7 +58,7 @@ typedef enum
   KEY_ARM_5  = 0x5,
   KEY_ARM_6  = 0x6,
   KEY_ARM_7  = 0x7,
-} key_t;
+} arm_key_t;
 
 //----------------------------------------------------------------------------
 // Globals
@@ -199,7 +199,7 @@ bool was_there_a_reward(){
         log_info("%d was spiked %d times", i, arm_choices[i]);
         arm_choices[i] = 0;
     }
-    double probability_roll = (double)rand() / (double)RAND_MAX
+    double probability_roll = (double)rand() / (double)RAND_MAX;
     log_info("roll was %d and prob was %d", probability_roll, arm_probabilities[choice]);
     if(probability_roll < arm_probabilities[choice]){
         log_info("reward given");
@@ -213,10 +213,9 @@ bool was_there_a_reward(){
 
 void mc_packet_received_callback(uint key, uint payload)
 {
-
-    //comapre first with 0x7
-    compare = key & 0x7
-    log_info("compare = %x", compare)
+    uint32_t compare;
+    compare = key & 0x7;
+    log_info("compare = %x", compare);
     use(payload);
     if(compare == KEY_ARM_0){
         arm_choices[0]++;
@@ -281,7 +280,7 @@ void timer_callback(uint unused, uint dummy)
         tick_in_frame++;
         if(tick_in_frame == reward_delay)
         {
-            if (was_there_a_reward){
+            if (was_there_a_reward()){
                 add_reward();
             }
             else{
@@ -321,7 +320,6 @@ void c_main(void)
     return;
   }
 
-  init_frame();
   tick_in_frame = 0;
 
   // Set timer tick (in microseconds)

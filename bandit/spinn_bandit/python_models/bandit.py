@@ -101,16 +101,28 @@ class Bandit(ApplicationVertex, AbstractGeneratesDataSpecification,
     def clear_connection_cache(self):
         pass
 
-    ##TODO adjust this
-    BANDIT_REGION_BYTES = 4
+    BANDIT_REGION_BYTES = 24
     MAX_SIM_DURATION = 1000 * 60 * 60 * 24 * 7  # 1 week
+
+    # parameters expected by PyNN
+    default_parameters = {
+        'reward_delay': 200.0,
+        'constraints': None,
+        'rate': 1.0,
+        'label': "Breakout",
+        'incoming_spike_buffer_size': None,
+        'duration': MAX_SIM_DURATION,
+        'arms': [0.1, 0.9]}
 
     # **HACK** for Projection to connect a synapse type is required
     synapse_type = BanditSynapseType()
 
-    def __init__(self, arms, reward_delay, constraints=None,
-                 label="Breakout", incoming_spike_buffer_size=None,
-                 simulation_duration_ms=MAX_SIM_DURATION):
+    def __init__(self, arms=default_parameters['arms'],
+                 reward_delay=default_parameters['reward_delay'],
+                 constraints=default_parameters['constraints'],
+                 label=default_parameters['label'],
+                 incoming_spike_buffer_size=default_parameters['incoming_spike_buffer_size'],
+                 simulation_duration_ms=default_parameters['duration']):
         # **NOTE** n_neurons currently ignored - width and height will be
         # specified as additional parameters, forcing their product to be
         # duplicated in n_neurons seems pointless

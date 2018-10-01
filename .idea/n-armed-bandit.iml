@@ -8,10 +8,12 @@
     <orderEntry type="module" module-name="PACMAN" />
     <orderEntry type="module" module-name="DataSpecification" />
     <orderEntry type="module" module-name="SpiNNFrontEndCommon" />
-    <orderEntry type="module" module-name="sPyNNaker8" />
     <orderEntry type="module" module-name="spalloc_server" />
     <orderEntry type="module" module-name="spalloc" />
     <orderEntry type="module" module-name="SpiNNMan" />
     <orderEntry type="module" module-name="sPyNNaker" />
+    <orderEntry type="module" module-name="SpiNNUtils" />
+    <orderEntry type="module" module-name="SpiNNStorageHandlers" />
+    <orderEntry type="module" module-name="sPyNNaker8" />
   </component>
 </module>
